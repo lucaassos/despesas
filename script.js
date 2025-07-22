@@ -1,4 +1,3 @@
-
 // ===================================================================================
 // PASSO 1: COLE A CONFIGURAÇÃO DO SEU FIREBASE AQUI
 // ===================================================================================
@@ -10,7 +9,6 @@ const firebaseConfig = {
   messagingSenderId: "799151739641",
   appId: "1:799151739641:web:86067067319e8c4cf30828"
 };
-
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -55,28 +53,59 @@ const DashboardPage = (user) => `
             <button id="logout-btn" class="btn btn-logout">Sair</button>
         </header>
 
-        <main>
-            <div class="glass-card card-section">
-                 <h2 class="card-title">Resumo do Mês</h2>
-                 <p id="monthly-total">R$ 0,00</p>
-            </div>
+        <div class="dashboard-grid">
+            <aside class="summary-section">
+                <div class="glass-card summary-card">
+                    <h2>Resumo do Mês</h2>
+                    <div id="total-variavel" class="summary-item">
+                        <span class="label">Variáveis</span>
+                        <span class="value">R$ 0,00</span>
+                    </div>
+                    <div id="total-fixo" class="summary-item">
+                        <span class="label">Fixas</span>
+                        <span class="value">R$ 0,00</span>
+                    </div>
+                    <div id="total-geral" class="summary-item">
+                        <span class="label">Total</span>
+                        <span class="value">R$ 0,00</span>
+                    </div>
+                </div>
+                
+                <div class="glass-card summary-card" style="margin-top: 2rem;">
+                    <h2>Adicionar Despesa</h2>
+                    <form id="expense-form" class="form-add-expense">
+                        <input type="text" id="description" class="input-add-expense" placeholder="Descrição (ex: Jantar)" required>
+                        <input type="number" id="amount" class="input-add-expense" placeholder="Valor" step="0.01" required>
+                        <div class="expense-type-selector">
+                            <input type="radio" id="type-variable" name="expense-type" value="variavel" checked>
+                            <label for="type-variable">Variável</label>
+                            <input type="radio" id="type-fixed" name="expense-type" value="fixa">
+                            <label for="type-fixed">Fixa</label>
+                        </div>
+                        <button type="submit" class="btn btn-gradient">Adicionar</button>
+                    </form>
+                </div>
+            </aside>
 
-            <div class="glass-card card-section">
-                <h2 class="card-title">Adicionar Nova Despesa</h2>
-                <form id="expense-form" class="form-add-expense">
-                    <input type="text" id="description" class="input-add-expense" placeholder="Descrição (ex: Jantar)" required>
-                    <input type="number" id="amount" class="input-add-expense" placeholder="Valor" step="0.01" required>
-                    <button type="submit" class="btn btn-gradient">Adicionar</button>
-                </form>
-            </div>
-
-            <div>
-                <h2 class="card-title" style="margin-left: 1rem; margin-top: 2rem;">Histórico</h2>
-                <div id="loading-spinner" class="loader"></div>
-                <div id="expenses-list" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
-                <p id="empty-state" class="glass-card" style="display: none;">Nenhuma despesa registrada ainda.</p>
-            </div>
-        </main>
+            <main class="history-section">
+                <h2>Histórico de Despesas</h2>
+                <div class="glass-card" style="padding: 1.5rem;">
+                    <nav class="tabs-nav">
+                        <div class="tab-item active" data-tab="variable">Variáveis</div>
+                        <div class="tab-item" data-tab="fixed">Fixas</div>
+                    </nav>
+                    <div id="loading-spinner" class="loader"></div>
+                    <div id="tab-content-variable" class="tab-content active">
+                        <div id="variable-expenses-list" class="expense-list"></div>
+                        <p id="empty-state-variable" class="empty-state" style="display: none;">Nenhuma despesa variável registrada.</p>
+                    </div>
+                    <div id="tab-content-fixed" class="tab-content">
+                        <div id="fixed-expenses-list" class="expense-list"></div>
+                        <p id="empty-state-fixed" class="empty-state" style="display: none;">Nenhuma despesa fixa registrada.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 `;
 
@@ -149,19 +178,38 @@ const setupDashboardListeners = (user) => {
         e.preventDefault();
         const description = document.getElementById('description').value;
         const amount = parseFloat(document.getElementById('amount').value);
+        const type = document.querySelector('input[name="expense-type"]:checked').value;
 
         if (description && !isNaN(amount) && amount > 0) {
-            addExpense(user.uid, description, amount);
+            addExpense(user.uid, description, amount, type);
             expenseForm.reset();
         }
     });
+
+    // Lógica das abas
+    const tabs = document.querySelectorAll('.tab-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(item => item.classList.remove('active'));
+            tab.classList.add('active');
+            const target = tab.getAttribute('data-tab');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `tab-content-${target}`) {
+                    content.classList.add('active');
+                }
+            });
+        });
+    });
 };
 
-const addExpense = (userId, description, amount) => {
+const addExpense = (userId, description, amount, type) => {
     db.collection('expenses').add({
-        userId: userId,
-        description: description,
-        amount: amount,
+        userId,
+        description,
+        amount,
+        type,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(error => console.error("Erro ao adicionar despesa: ", error));
 };
@@ -189,26 +237,59 @@ const hideModal = (id) => {
 
 window.showDeleteConfirmation = showDeleteConfirmation;
 
-const updateSummary = (expenses) => {
-    const monthlyTotalEl = document.getElementById('monthly-total');
+const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',')}`;
+
+const updateSummary = (fixedExpenses, variableExpenses) => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    const monthlyTotal = expenses
-        .filter(expense => {
-            const expenseDate = expense.createdAt?.toDate();
-            return expenseDate && expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
-        })
-        .reduce((total, expense) => total + expense.amount, 0);
-    
-    monthlyTotalEl.textContent = `R$ ${monthlyTotal.toFixed(2).replace('.', ',')}`;
+    const filterByMonth = (expense) => {
+        const expenseDate = expense.createdAt?.toDate();
+        return expenseDate && expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+    };
+
+    const totalFixed = fixedExpenses.filter(filterByMonth).reduce((sum, ex) => sum + ex.amount, 0);
+    const totalVariable = variableExpenses.filter(filterByMonth).reduce((sum, ex) => sum + ex.amount, 0);
+    const totalOverall = totalFixed + totalVariable;
+
+    document.querySelector('#total-fixo .value').textContent = formatCurrency(totalFixed);
+    document.querySelector('#total-variavel .value').textContent = formatCurrency(totalVariable);
+    document.querySelector('#total-geral .value').textContent = formatCurrency(totalOverall);
+};
+
+const renderExpenseList = (expenses, containerEl, emptyStateEl) => {
+    containerEl.innerHTML = '';
+    if (expenses.length === 0) {
+        emptyStateEl.style.display = 'block';
+        return;
+    }
+    emptyStateEl.style.display = 'none';
+
+    expenses.forEach(expenseDoc => {
+        const expense = expenseDoc.data();
+        const id = expenseDoc.id;
+        const date = expense.createdAt?.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) || '...';
+        const li = document.createElement('div');
+        li.className = 'expense-item';
+        li.innerHTML = `
+            <div>
+                <p class="description">${expense.description}</p>
+                <p class="date">${date}</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <p class="amount">${formatCurrency(expense.amount)}</p>
+                <button onclick="window.showDeleteConfirmation('${id}')" class="btn-delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
+                </button>
+            </div>
+        `;
+        containerEl.appendChild(li);
+    });
 };
 
 const loadExpenses = (userId) => {
-    const listEl = document.getElementById('expenses-list');
     const spinnerEl = document.getElementById('loading-spinner');
-    const emptyStateEl = document.getElementById('empty-state');
 
     db.collection('expenses')
       .where('userId', '==', userId)
@@ -216,40 +297,20 @@ const loadExpenses = (userId) => {
       .onSnapshot(
         (querySnapshot) => {
             spinnerEl.style.display = 'none';
-            listEl.innerHTML = '';
-            const allExpenses = [];
+            
+            const allDocs = querySnapshot.docs;
+            const fixedExpenses = allDocs.filter(doc => doc.data().type === 'fixa');
+            const variableExpenses = allDocs.filter(doc => doc.data().type === 'variavel');
 
-            if (querySnapshot.empty) {
-                emptyStateEl.style.display = 'block';
-            } else {
-                emptyStateEl.style.display = 'none';
-                querySnapshot.forEach((doc) => {
-                    const expense = doc.data();
-                    allExpenses.push(expense);
-                    const date = expense.createdAt?.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) || '...';
-                    const li = document.createElement('div');
-                    li.className = 'expense-item';
-                    li.innerHTML = `
-                        <div>
-                            <p class="description">${expense.description}</p>
-                            <p class="date">${date}</p>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <p class="amount">R$ ${expense.amount.toFixed(2).replace('.', ',')}</p>
-                            <button onclick="window.showDeleteConfirmation('${doc.id}')" class="btn-delete">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
-                            </button>
-                        </div>
-                    `;
-                    listEl.appendChild(li);
-                });
-            }
-            updateSummary(allExpenses);
+            updateSummary(fixedExpenses.map(d => d.data()), variableExpenses.map(d => d.data()));
+            
+            renderExpenseList(fixedExpenses, document.getElementById('fixed-expenses-list'), document.getElementById('empty-state-fixed'));
+            renderExpenseList(variableExpenses, document.getElementById('variable-expenses-list'), document.getElementById('empty-state-variable'));
         },
         (error) => {
             console.error("Erro ao carregar despesas:", error);
             spinnerEl.style.display = 'none';
-            listEl.innerHTML = `<p style="text-align: center; color: #fb7185;">Não foi possível carregar os dados.</p>`;
+            appRoot.innerHTML += `<p style="text-align: center; color: #fb7185;">Não foi possível carregar os dados.</p>`;
         }
     );
 };
