@@ -1,3 +1,6 @@
+// ===================================================================================
+// PASSO 1: COLE A CONFIGURAÇÃO DO SEU FIREBASE AQUI
+// ===================================================================================
 const firebaseConfig = {
   apiKey: "AIzaSyBbA1r0N7a7Jelzx1nM9cVlHJCKxsHfXfE",
   authDomain: "controle-despesas-app.firebaseapp.com",
@@ -6,6 +9,7 @@ const firebaseConfig = {
   messagingSenderId: "799151739641",
   appId: "1:799151739641:web:86067067319e8c4cf30828"
 };
+
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -462,7 +466,15 @@ const hideModal = (id) => {
 };
 
 const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',')}`;
-const getMonthYear = (date) => date ? `${date.toDate().getFullYear()}-${String(date.toDate().getMonth() + 1).padStart(2, '0')}` : null;
+
+// CORREÇÃO APLICADA AQUI
+const getMonthYear = (date) => {
+    if (!date) return null;
+    // Se for um timestamp do Firebase, converte. Senão, usa diretamente.
+    const d = date.toDate ? date.toDate() : date;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const formatMonthYearForDisplay = (monthYear) => {
     const [year, month] = monthYear.split('-');
     return new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
