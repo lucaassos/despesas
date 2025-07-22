@@ -19,7 +19,7 @@ body {
     box-shadow: 0 20px 30px rgba(0, 0, 0, 0.2);
 }
 
-/* --- Novo Design da Tela de Login --- */
+/* --- Design da Tela de Login --- */
 .login-container {
     min-height: 100vh;
     display: flex;
@@ -76,7 +76,6 @@ body {
     transition: all 0.3s ease;
 }
 
-/* Animação do rótulo flutuante */
 .form-field:focus ~ .form-label,
 .form-field:not(:placeholder-shown) ~ .form-label {
     top: -20px;
@@ -126,9 +125,9 @@ body {
     margin-top: 2rem;
 }
 
-/* --- Estilos do Dashboard --- */
+/* --- NOVO: Estilos do Dashboard --- */
 .dashboard-container {
-    max-width: 48rem; /* 768px */
+    max-width: 80rem; /* 1280px */
     margin: 0 auto;
     padding: 2rem 1rem;
 }
@@ -138,10 +137,11 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    padding: 0 1rem;
 }
 
 .dashboard-header h1 {
-    font-size: 2.25rem; /* 36px */
+    font-size: 2.25rem;
     font-weight: 700;
     color: #fff;
 }
@@ -151,37 +151,72 @@ body {
 }
 
 .btn-logout {
-    background-color: #dc2626; /* red-600 */
+    background-color: #dc2626;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     font-weight: 600;
 }
 .btn-logout:hover {
-    background-color: #b91c1c; /* red-700 */
+    background-color: #b91c1c;
 }
 
-#monthly-total {
-    font-size: 2.5rem; /* 40px */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr 2fr;
+    }
+}
+
+.summary-section h2, .history-section h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #fff;
+}
+
+.summary-card {
+    padding: 1.5rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+}
+.summary-item:not(:last-child) {
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+}
+.summary-item .label {
+    font-size: 1rem;
+    color: #cbd5e1;
+}
+.summary-item .value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+}
+#total-geral .value {
+    font-size: 2rem;
     font-weight: 700;
     color: #22d3ee;
 }
 
 .form-add-expense {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 1rem;
 }
-@media (min-width: 768px) {
-    .form-add-expense {
-        grid-template-columns: 3fr 1fr 1fr;
-    }
-}
-
 .input-add-expense {
     width: 100%;
     padding: 0.75rem 1rem;
-    background-color: #1e293b; /* slate-800 */
-    border: 1px solid #334155; /* slate-700 */
+    background-color: #1e293b;
+    border: 1px solid #334155;
     border-radius: 0.5rem;
     color: #e2e8f0;
     outline: none;
@@ -191,8 +226,63 @@ body {
     box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
 }
 
+/* NOVO: Seletor de Tipo de Despesa */
+.expense-type-selector {
+    display: flex;
+    border-radius: 0.5rem;
+    border: 1px solid #334155;
+    overflow: hidden;
+}
+.expense-type-selector input {
+    display: none;
+}
+.expense-type-selector label {
+    flex: 1;
+    padding: 0.75rem;
+    text-align: center;
+    cursor: pointer;
+    color: #94a3b8;
+    transition: background-color 0.3s;
+}
+.expense-type-selector input:checked + label {
+    background-color: #0ea5e9;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* NOVO: Abas de Histórico */
+.tabs-nav {
+    display: flex;
+    gap: 1rem;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 1.5rem;
+}
+.tab-item {
+    padding: 0.75rem 0.25rem;
+    cursor: pointer;
+    color: #94a3b8;
+    border-bottom: 2px solid transparent;
+    transition: color 0.3s, border-color 0.3s;
+}
+.tab-item.active {
+    color: #22d3ee;
+    border-bottom-color: #22d3ee;
+    font-weight: 600;
+}
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+
+.expense-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
 .expense-item {
-    background-color: rgba(30, 41, 59, 0.8); /* slate-800/80 */
+    background-color: rgba(30, 41, 59, 0.8);
     padding: 1rem;
     border-radius: 0.75rem;
     border: 1px solid #334155;
@@ -202,7 +292,7 @@ body {
     transition: all 0.2s ease;
 }
 .expense-item:hover {
-    background-color: rgba(51, 65, 85, 0.8); /* slate-700/80 */
+    background-color: rgba(51, 65, 85, 0.8);
     transform: translateY(-2px);
 }
 .expense-item .description {
@@ -228,21 +318,11 @@ body {
     transition: color 0.2s, background-color 0.2s;
 }
 .btn-delete:hover {
-    color: #ef4444; /* red-500 */
+    color: #ef4444;
     background-color: rgba(239, 68, 68, 0.1);
 }
 
 /* --- Utilitários e Outros --- */
-.card-section {
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-}
-.card-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: #fff;
-}
 .loader {
     border: 4px solid rgba(56, 189, 248, 0.2);
     border-top: 4px solid #06b6d4;
@@ -256,10 +336,12 @@ body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-#empty-state {
+.empty-state {
     text-align: center;
     padding: 2rem;
     color: #94a3b8;
+    background-color: rgba(30, 41, 59, 0.5);
+    border-radius: 0.75rem;
 }
 .modal-overlay {
     position: fixed;
@@ -272,6 +354,7 @@ body {
     padding: 1rem;
     opacity: 0;
     transition: opacity 0.3s ease;
+    z-index: 50;
 }
 .modal-content {
     padding: 2rem;
@@ -286,7 +369,7 @@ body {
     margin-bottom: 1rem;
 }
 .modal-content p {
-    color: #cbd5e1; /* slate-300 */
+    color: #cbd5e1;
     margin-bottom: 2rem;
 }
 .modal-buttons {
@@ -294,14 +377,14 @@ body {
     gap: 1rem;
 }
 .btn-cancel {
-    background-color: #475569; /* slate-600 */
+    background-color: #475569;
 }
 .btn-cancel:hover {
-    background-color: #64748b; /* slate-500 */
+    background-color: #64748b;
 }
 .btn-confirm-delete {
-    background-color: #dc2626; /* red-600 */
+    background-color: #dc2626;
 }
 .btn-confirm-delete:hover {
-    background-color: #ef4444; /* red-500 */
+    background-color: #ef4444;
 }
