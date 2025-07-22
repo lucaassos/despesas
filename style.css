@@ -7,6 +7,11 @@ body {
     background-size: 25px 25px;
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
 }
 
 /* --- Componente "Glassmorphism" --- */
@@ -125,7 +130,7 @@ body {
     margin-top: 2rem;
 }
 
-/* --- NOVO: Estilos do Dashboard --- */
+/* --- Estilos do Dashboard --- */
 .dashboard-container {
     max-width: 80rem; /* 1280px */
     margin: 0 auto;
@@ -168,7 +173,7 @@ body {
 
 @media (min-width: 1024px) {
     .dashboard-grid {
-        grid-template-columns: 1fr 2fr;
+        grid-template-columns: 320px 1fr;
     }
 }
 
@@ -226,7 +231,6 @@ body {
     box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
 }
 
-/* NOVO: Seletor de Tipo de Despesa */
 .expense-type-selector {
     display: flex;
     border-radius: 0.5rem;
@@ -250,7 +254,30 @@ body {
     font-weight: 600;
 }
 
-/* NOVO: Abas de Histórico */
+/* NOVO: Seletor de Mês */
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+#month-filter {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    outline: none;
+}
+
+#month-filter:focus {
+    border-color: #22d3ee;
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
+}
+
+
+/* Abas de Histórico */
 .tabs-nav {
     display: flex;
     gap: 1rem;
