@@ -17,6 +17,10 @@ const db = firebase.firestore();
 const appRoot = document.getElementById('app-root');
 const modalContainer = document.getElementById('modal-container');
 
+// Variáveis de estado
+let allUserExpenses = [];
+let selectedMonthYear = '';
+
 // --- TEMPLATES HTML ---
 
 const LoginPage = () => `
@@ -56,7 +60,7 @@ const DashboardPage = (user) => `
         <div class="dashboard-grid">
             <aside class="summary-section">
                 <div class="glass-card summary-card">
-                    <h2>Resumo do Mês</h2>
+                    <h2 id="summary-title">Resumo do Mês</h2>
                     <div id="total-variavel" class="summary-item">
                         <span class="label">Variáveis</span>
                         <span class="value">R$ 0,00</span>
@@ -88,7 +92,10 @@ const DashboardPage = (user) => `
             </aside>
 
             <main class="history-section">
-                <h2>Histórico de Despesas</h2>
+                <div class="history-header">
+                    <h2>Histórico de Despesas</h2>
+                    <select id="month-filter"></select>
+                </div>
                 <div class="glass-card" style="padding: 1.5rem;">
                     <nav class="tabs-nav">
                         <div class="tab-item active" data-tab="variable">Variáveis</div>
@@ -144,13 +151,11 @@ const showLoginPage = () => {
 const setupLoginListeners = () => {
     const loginForm = document.getElementById('login-form');
     if (!loginForm) return;
-
-    const emailEl = document.getElementById('email');
-    const passwordEl = document.getElementById('password');
-    const errorEl = document.getElementById('error-message');
-
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        const emailEl = document.getElementById('email');
+        const passwordEl = document.getElementById('password');
+        const errorEl = document.getElementById('error-message');
         errorEl.textContent = '';
         auth.signInWithEmailAndPassword(emailEl.value, passwordEl.value)
             .catch(error => {
@@ -188,19 +193,24 @@ const setupDashboardListeners = (user) => {
 
     // Lógica das abas
     const tabs = document.querySelectorAll('.tab-item');
-    const tabContents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            tabs.forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
             tab.classList.add('active');
             const target = tab.getAttribute('data-tab');
-            tabContents.forEach(content => {
+            document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
                 if (content.id === `tab-content-${target}`) {
                     content.classList.add('active');
                 }
             });
         });
+    });
+
+    // Lógica do filtro de mês
+    document.getElementById('month-filter').addEventListener('change', (e) => {
+        selectedMonthYear = e.target.value;
+        displayExpensesForSelectedMonth();
     });
 };
 
@@ -239,23 +249,40 @@ window.showDeleteConfirmation = showDeleteConfirmation;
 
 const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',')}`;
 
-const updateSummary = (fixedExpenses, variableExpenses) => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+const getMonthYear = (date) => {
+    if (!date) return null;
+    const d = date.toDate();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
 
-    const filterByMonth = (expense) => {
-        const expenseDate = expense.createdAt?.toDate();
-        return expenseDate && expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
-    };
+const formatMonthYearForDisplay = (monthYear) => {
+    const [year, month] = monthYear.split('-');
+    const date = new Date(year, month - 1);
+    return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+};
 
-    const totalFixed = fixedExpenses.filter(filterByMonth).reduce((sum, ex) => sum + ex.amount, 0);
-    const totalVariable = variableExpenses.filter(filterByMonth).reduce((sum, ex) => sum + ex.amount, 0);
-    const totalOverall = totalFixed + totalVariable;
+const displayExpensesForSelectedMonth = () => {
+    const filteredExpenses = allUserExpenses.filter(doc => {
+        const expenseMonthYear = getMonthYear(doc.data().createdAt);
+        return expenseMonthYear === selectedMonthYear;
+    });
 
+    const fixedExpenses = filteredExpenses.filter(doc => doc.data().type === 'fixa');
+    const variableExpenses = filteredExpenses.filter(doc => doc.data().type === 'variavel');
+
+    // Atualiza o título do resumo
+    document.getElementById('summary-title').textContent = `Resumo de ${formatMonthYearForDisplay(selectedMonthYear)}`;
+
+    // Atualiza os valores do resumo
+    const totalFixed = fixedExpenses.reduce((sum, ex) => sum + ex.data().amount, 0);
+    const totalVariable = variableExpenses.reduce((sum, ex) => sum + ex.data().amount, 0);
     document.querySelector('#total-fixo .value').textContent = formatCurrency(totalFixed);
     document.querySelector('#total-variavel .value').textContent = formatCurrency(totalVariable);
-    document.querySelector('#total-geral .value').textContent = formatCurrency(totalOverall);
+    document.querySelector('#total-geral .value').textContent = formatCurrency(totalFixed + totalVariable);
+
+    // Renderiza as listas
+    renderExpenseList(fixedExpenses, document.getElementById('fixed-expenses-list'), document.getElementById('empty-state-fixed'));
+    renderExpenseList(variableExpenses, document.getElementById('variable-expenses-list'), document.getElementById('empty-state-variable'));
 };
 
 const renderExpenseList = (expenses, containerEl, emptyStateEl) => {
@@ -290,6 +317,7 @@ const renderExpenseList = (expenses, containerEl, emptyStateEl) => {
 
 const loadExpenses = (userId) => {
     const spinnerEl = document.getElementById('loading-spinner');
+    const monthFilterEl = document.getElementById('month-filter');
 
     db.collection('expenses')
       .where('userId', '==', userId)
@@ -297,15 +325,33 @@ const loadExpenses = (userId) => {
       .onSnapshot(
         (querySnapshot) => {
             spinnerEl.style.display = 'none';
-            
-            const allDocs = querySnapshot.docs;
-            const fixedExpenses = allDocs.filter(doc => doc.data().type === 'fixa');
-            const variableExpenses = allDocs.filter(doc => doc.data().type === 'variavel');
+            allUserExpenses = querySnapshot.docs;
 
-            updateSummary(fixedExpenses.map(d => d.data()), variableExpenses.map(d => d.data()));
+            // Popula o filtro de mês
+            const monthSet = new Set();
+            allUserExpenses.forEach(doc => {
+                const monthYear = getMonthYear(doc.data().createdAt);
+                if (monthYear) monthSet.add(monthYear);
+            });
             
-            renderExpenseList(fixedExpenses, document.getElementById('fixed-expenses-list'), document.getElementById('empty-state-fixed'));
-            renderExpenseList(variableExpenses, document.getElementById('variable-expenses-list'), document.getElementById('empty-state-variable'));
+            const currentMonthYear = getMonthYear(new Date());
+            monthSet.add(currentMonthYear); // Garante que o mês atual sempre esteja na lista
+
+            monthFilterEl.innerHTML = '';
+            const sortedMonths = Array.from(monthSet).sort().reverse();
+            sortedMonths.forEach(monthYear => {
+                const option = document.createElement('option');
+                option.value = monthYear;
+                option.textContent = formatMonthYearForDisplay(monthYear);
+                monthFilterEl.appendChild(option);
+            });
+
+            // Define o mês selecionado e exibe os dados
+            if (!selectedMonthYear || !monthSet.has(selectedMonthYear)) {
+                selectedMonthYear = currentMonthYear;
+            }
+            monthFilterEl.value = selectedMonthYear;
+            displayExpensesForSelectedMonth();
         },
         (error) => {
             console.error("Erro ao carregar despesas:", error);
