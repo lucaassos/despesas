@@ -130,39 +130,87 @@ body {
     margin-top: 2rem;
 }
 
+/* --- NOVO: Estilos do Cabeçalho Principal --- */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.main-nav {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.main-nav a {
+    font-weight: 500;
+    color: #94a3b8;
+    text-decoration: none;
+    padding: 0.5rem 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+.main-nav a.active {
+    color: #fff;
+    border-bottom-color: #22d3ee;
+}
+
+.main-nav a:hover {
+    color: #fff;
+}
+
+.user-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-email {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    display: none;
+}
+@media (min-width: 768px) {
+    .user-email {
+        display: block;
+    }
+}
+
+.btn-logout {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: 1px solid #be123c;
+    color: #fecdd3;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+}
+.btn-logout:hover {
+    background-color: #be123c;
+    color: #fff;
+}
+
 /* --- Estilos do Dashboard --- */
-.dashboard-container {
+.page-container {
     max-width: 80rem; /* 1280px */
     margin: 0 auto;
     padding: 2rem 1rem;
 }
 
-.dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding: 0 1rem;
-}
-
-.dashboard-header h1 {
+.page-title {
     font-size: 2.25rem;
     font-weight: 700;
     color: #fff;
-}
-
-.dashboard-header p {
-    color: #94a3b8;
-}
-
-.btn-logout {
-    background-color: #dc2626;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-}
-.btn-logout:hover {
-    background-color: #b91c1c;
+    margin-bottom: 2rem;
 }
 
 .dashboard-grid {
@@ -254,7 +302,6 @@ body {
     font-weight: 600;
 }
 
-/* NOVO: Seletor de Mês */
 .history-header {
     display: flex;
     justify-content: space-between;
@@ -276,8 +323,6 @@ body {
     box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
 }
 
-
-/* Abas de Histórico */
 .tabs-nav {
     display: flex;
     gap: 1rem;
@@ -348,6 +393,51 @@ body {
     color: #ef4444;
     background-color: rgba(239, 68, 68, 0.1);
 }
+
+/* --- NOVO: Estilos da Página "Despesas Dark" --- */
+.dark-expense-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+@media (min-width: 1024px) {
+    .dark-expense-grid {
+        grid-template-columns: 320px 1fr;
+    }
+}
+
+.debtor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.debtor-item {
+    background-color: rgba(30, 41, 59, 0.8);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #334155;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+}
+.debtor-info {
+    display: flex;
+    flex-direction: column;
+}
+.debtor-name {
+    font-weight: 600;
+    color: #fff;
+}
+.debtor-details {
+    font-size: 0.875rem;
+    color: #94a3b8;
+}
+.debtor-actions {
+    display: flex;
+    align-items: center;
+}
+
 
 /* --- Utilitários e Outros --- */
 .loader {
