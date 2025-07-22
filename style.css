@@ -130,7 +130,7 @@ body {
     margin-top: 2rem;
 }
 
-/* --- NOVO: Estilos do Cabeçalho Principal --- */
+/* --- Estilos do Cabeçalho Principal --- */
 .main-header {
     display: flex;
     justify-content: space-between;
@@ -199,20 +199,27 @@ body {
     color: #fff;
 }
 
-/* --- Estilos do Dashboard --- */
+/* --- Estilos Gerais de Página --- */
 .page-container {
     max-width: 80rem; /* 1280px */
     margin: 0 auto;
     padding: 2rem 1rem;
 }
 
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
 .page-title {
     font-size: 2.25rem;
     font-weight: 700;
     color: #fff;
-    margin-bottom: 2rem;
 }
 
+/* --- Estilos do Dashboard --- */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -395,47 +402,97 @@ body {
 }
 
 /* --- NOVO: Estilos da Página "Despesas Dark" --- */
-.dark-expense-grid {
+.sessions-container {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-}
-@media (min-width: 1024px) {
-    .dark-expense-grid {
-        grid-template-columns: 320px 1fr;
-    }
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
 }
 
-.debtor-list {
+.session-card {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.session-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.session-details {
+    font-size: 0.875rem;
+    color: #94a3b8;
+}
+
+.session-debtors-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
+
 .debtor-item {
-    background-color: rgba(30, 41, 59, 0.8);
-    padding: 1rem;
-    border-radius: 0.75rem;
-    border: 1px solid #334155;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 1rem;
-}
-.debtor-info {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1e293b;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
 }
+
 .debtor-name {
-    font-weight: 600;
-    color: #fff;
+    color: #e2e8f0;
 }
-.debtor-details {
-    font-size: 0.875rem;
-    color: #94a3b8;
-}
-.debtor-actions {
+
+.debtor-status {
     display: flex;
     align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.status-owing {
+    color: #fb7185; /* red-400 */
+}
+.status-owing .status-indicator {
+    background-color: #fb7185;
+}
+
+.status-paid {
+    color: #4ade80; /* green-400 */
+}
+.status-paid .status-indicator {
+    background-color: #4ade80;
+}
+
+.session-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto; /* Alinha no final do card */
+    padding-top: 1rem;
+    border-top: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.btn-secondary {
+    background-color: #334155;
+    flex: 1;
+}
+.btn-secondary:hover {
+    background-color: #475569;
 }
 
 
