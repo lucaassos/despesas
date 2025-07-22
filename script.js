@@ -18,6 +18,7 @@ const appRoot = document.getElementById('app-root');
 const modalContainer = document.getElementById('modal-container');
 
 // Variáveis de estado
+let currentPage = 'dashboard';
 let allUserExpenses = [];
 let selectedMonthYear = '';
 
@@ -47,16 +48,25 @@ const LoginPage = () => `
     </div>
 `;
 
-const DashboardPage = (user) => `
-    <div class="dashboard-container">
-        <header class="dashboard-header">
-            <div>
-                <h1>Painel de Despesas</h1>
-                <p title="${user.email}">${user.email}</p>
-            </div>
-            <button id="logout-btn" class="btn btn-logout">Sair</button>
-        </header>
+const HeaderComponent = (user, activePage) => `
+    <header class="main-header">
+        <nav class="main-nav">
+            <a href="#" class="${activePage === 'dashboard' ? 'active' : ''}" data-page="dashboard">Painel Principal</a>
+            <a href="#" class="${activePage === 'dark' ? 'active' : ''}" data-page="dark">Despesas Dark</a>
+        </nav>
+        <div class="user-controls">
+            <span class="user-email" title="${user.email}">${user.email}</span>
+            <button id="logout-btn" class="btn btn-logout">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/></svg>
+                <span>Sair</span>
+            </button>
+        </div>
+    </header>
+`;
 
+const DashboardPage = () => `
+    <div class="page-container">
+        <h1 class="page-title">Painel de Despesas</h1>
         <div class="dashboard-grid">
             <aside class="summary-section">
                 <div class="glass-card summary-card">
@@ -116,11 +126,38 @@ const DashboardPage = (user) => `
     </div>
 `;
 
+const DarkExpensesPage = () => `
+    <div class="page-container">
+        <h1 class="page-title">Despesas Dark</h1>
+        <div class="dark-expense-grid">
+            <aside>
+                <div class="glass-card" style="padding: 1.5rem;">
+                    <h2>Adicionar Devedor</h2>
+                    <form id="dark-expense-form" class="form-add-expense">
+                        <input type="text" id="debtor-name" class="input-add-expense" placeholder="Nome do devedor" required>
+                        <input type="number" id="debt-amount" class="input-add-expense" placeholder="Valor do débito" step="0.01" required>
+                        <input type="number" id="material-quantity" class="input-add-expense" placeholder="Qtd. de material" required>
+                        <button type="submit" class="btn btn-gradient">Adicionar</button>
+                    </form>
+                </div>
+            </aside>
+            <main>
+                <h2>Lista de Devedores</h2>
+                <div class="glass-card" style="padding: 1.5rem;">
+                    <div id="dark-loading-spinner" class="loader"></div>
+                    <div id="debtor-list" class="debtor-list"></div>
+                    <p id="empty-state-dark" class="empty-state" style="display: none;">Nenhum devedor registrado.</p>
+                </div>
+            </main>
+        </div>
+    </div>
+`;
+
 const ConfirmationModal = (id) => `
     <div id="modal-${id}" class="modal-overlay">
         <div class="modal-content glass-card">
             <h3>Confirmar Exclusão</h3>
-            <p>Você tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.</p>
+            <p>Você tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
             <div class="modal-buttons">
                 <button id="cancel-delete-btn" class="btn btn-cancel">Cancelar</button>
                 <button id="confirm-delete-btn" class="btn btn-confirm-delete">Excluir</button>
@@ -131,17 +168,39 @@ const ConfirmationModal = (id) => `
 
 // --- LÓGICA DE ROTEAMENTO E RENDERIZAÇÃO ---
 
+const navigateTo = (page, user) => {
+    currentPage = page;
+    appRoot.innerHTML = HeaderComponent(user, page); // Renderiza o cabeçalho
+    
+    const pageContent = document.createElement('div');
+    appRoot.appendChild(pageContent);
+
+    if (page === 'dashboard') {
+        render(DashboardPage(), pageContent);
+        setupDashboardListeners(user);
+        loadExpenses(user.uid);
+    } else if (page === 'dark') {
+        render(DarkExpensesPage(), pageContent);
+        setupDarkExpensesListeners(user);
+        loadDarkDebts(user.uid);
+    }
+
+    // Adiciona listeners aos links de navegação no cabeçalho
+    document.querySelectorAll('.main-nav a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo(e.target.dataset.page, user);
+        });
+    });
+    document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
+};
+
 const render = (template, container) => {
     container.innerHTML = template;
 };
 
-const showDashboard = (user) => {
-    render(DashboardPage(user), appRoot);
-    setupDashboardListeners(user);
-    loadExpenses(user.uid);
-};
-
 const showLoginPage = () => {
+    appRoot.innerHTML = ''; // Limpa o cabeçalho
     render(LoginPage(), appRoot);
     setupLoginListeners();
 };
@@ -173,11 +232,9 @@ const getFriendlyAuthError = (code) => {
     }
 }
 
-// --- LÓGICA DO DASHBOARD ---
+// --- LÓGICA DO DASHBOARD PRINCIPAL ---
 
 const setupDashboardListeners = (user) => {
-    document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
-    
     const expenseForm = document.getElementById('expense-form');
     expenseForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -191,7 +248,6 @@ const setupDashboardListeners = (user) => {
         }
     });
 
-    // Lógica das abas
     const tabs = document.querySelectorAll('.tab-item');
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -207,7 +263,6 @@ const setupDashboardListeners = (user) => {
         });
     });
 
-    // Lógica do filtro de mês
     document.getElementById('month-filter').addEventListener('change', (e) => {
         selectedMonthYear = e.target.value;
         displayExpensesForSelectedMonth();
@@ -216,23 +271,20 @@ const setupDashboardListeners = (user) => {
 
 const addExpense = (userId, description, amount, type) => {
     db.collection('expenses').add({
-        userId,
-        description,
-        amount,
-        type,
+        userId, description, amount, type,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(error => console.error("Erro ao adicionar despesa: ", error));
 };
 
-const showDeleteConfirmation = (id) => {
+const showDeleteConfirmation = (id, collectionName) => {
     render(ConfirmationModal(id), modalContainer);
     const modal = document.getElementById(`modal-${id}`);
     setTimeout(() => { modal.style.opacity = '1'; }, 10);
 
     document.getElementById('cancel-delete-btn').onclick = () => hideModal(id);
     document.getElementById('confirm-delete-btn').onclick = () => {
-        db.collection('expenses').doc(id).delete()
-          .catch(error => console.error("Erro ao excluir despesa: ", error));
+        db.collection(collectionName).doc(id).delete()
+          .catch(error => console.error("Erro ao excluir item: ", error));
         hideModal(id);
     };
 };
@@ -262,25 +314,17 @@ const formatMonthYearForDisplay = (monthYear) => {
 };
 
 const displayExpensesForSelectedMonth = () => {
-    const filteredExpenses = allUserExpenses.filter(doc => {
-        const expenseMonthYear = getMonthYear(doc.data().createdAt);
-        return expenseMonthYear === selectedMonthYear;
-    });
-
+    const filteredExpenses = allUserExpenses.filter(doc => getMonthYear(doc.data().createdAt) === selectedMonthYear);
     const fixedExpenses = filteredExpenses.filter(doc => doc.data().type === 'fixa');
     const variableExpenses = filteredExpenses.filter(doc => doc.data().type === 'variavel');
 
-    // Atualiza o título do resumo
     document.getElementById('summary-title').textContent = `Resumo de ${formatMonthYearForDisplay(selectedMonthYear)}`;
-
-    // Atualiza os valores do resumo
     const totalFixed = fixedExpenses.reduce((sum, ex) => sum + ex.data().amount, 0);
     const totalVariable = variableExpenses.reduce((sum, ex) => sum + ex.data().amount, 0);
     document.querySelector('#total-fixo .value').textContent = formatCurrency(totalFixed);
     document.querySelector('#total-variavel .value').textContent = formatCurrency(totalVariable);
     document.querySelector('#total-geral .value').textContent = formatCurrency(totalFixed + totalVariable);
 
-    // Renderiza as listas
     renderExpenseList(fixedExpenses, document.getElementById('fixed-expenses-list'), document.getElementById('empty-state-fixed'));
     renderExpenseList(variableExpenses, document.getElementById('variable-expenses-list'), document.getElementById('empty-state-variable'));
 };
@@ -306,7 +350,7 @@ const renderExpenseList = (expenses, containerEl, emptyStateEl) => {
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <p class="amount">${formatCurrency(expense.amount)}</p>
-                <button onclick="window.showDeleteConfirmation('${id}')" class="btn-delete">
+                <button onclick="window.showDeleteConfirmation('${id}', 'expenses')" class="btn-delete">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
                 </button>
             </div>
@@ -319,44 +363,93 @@ const loadExpenses = (userId) => {
     const spinnerEl = document.getElementById('loading-spinner');
     const monthFilterEl = document.getElementById('month-filter');
 
-    db.collection('expenses')
-      .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
-      .onSnapshot(
-        (querySnapshot) => {
+    db.collection('expenses').where('userId', '==', userId).orderBy('createdAt', 'desc')
+      .onSnapshot((querySnapshot) => {
             spinnerEl.style.display = 'none';
             allUserExpenses = querySnapshot.docs;
-
-            // Popula o filtro de mês
-            const monthSet = new Set();
-            allUserExpenses.forEach(doc => {
-                const monthYear = getMonthYear(doc.data().createdAt);
-                if (monthYear) monthSet.add(monthYear);
-            });
-            
+            const monthSet = new Set(allUserExpenses.map(doc => getMonthYear(doc.data().createdAt)).filter(Boolean));
             const currentMonthYear = getMonthYear(new Date());
-            monthSet.add(currentMonthYear); // Garante que o mês atual sempre esteja na lista
-
+            monthSet.add(currentMonthYear);
             monthFilterEl.innerHTML = '';
-            const sortedMonths = Array.from(monthSet).sort().reverse();
-            sortedMonths.forEach(monthYear => {
+            Array.from(monthSet).sort().reverse().forEach(monthYear => {
                 const option = document.createElement('option');
                 option.value = monthYear;
                 option.textContent = formatMonthYearForDisplay(monthYear);
                 monthFilterEl.appendChild(option);
             });
-
-            // Define o mês selecionado e exibe os dados
             if (!selectedMonthYear || !monthSet.has(selectedMonthYear)) {
                 selectedMonthYear = currentMonthYear;
             }
             monthFilterEl.value = selectedMonthYear;
             displayExpensesForSelectedMonth();
-        },
-        (error) => {
+        }, (error) => {
             console.error("Erro ao carregar despesas:", error);
             spinnerEl.style.display = 'none';
-            appRoot.innerHTML += `<p style="text-align: center; color: #fb7185;">Não foi possível carregar os dados.</p>`;
+        }
+    );
+};
+
+// --- LÓGICA DA PÁGINA "DESPESAS DARK" ---
+
+const setupDarkExpensesListeners = (user) => {
+    const darkExpenseForm = document.getElementById('dark-expense-form');
+    darkExpenseForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const debtorName = document.getElementById('debtor-name').value;
+        const debtAmount = parseFloat(document.getElementById('debt-amount').value);
+        const materialQuantity = parseInt(document.getElementById('material-quantity').value);
+
+        if (debtorName && !isNaN(debtAmount) && !isNaN(materialQuantity)) {
+            addDarkDebt(user.uid, debtorName, debtAmount, materialQuantity);
+            darkExpenseForm.reset();
+        }
+    });
+};
+
+const addDarkDebt = (userId, debtorName, debtAmount, materialQuantity) => {
+    db.collection('darkDebts').add({
+        userId, debtorName, debtAmount, materialQuantity,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(error => console.error("Erro ao adicionar dívida: ", error));
+};
+
+const loadDarkDebts = (userId) => {
+    const listEl = document.getElementById('debtor-list');
+    const spinnerEl = document.getElementById('dark-loading-spinner');
+    const emptyStateEl = document.getElementById('empty-state-dark');
+
+    db.collection('darkDebts').where('userId', '==', userId).orderBy('createdAt', 'desc')
+      .onSnapshot((querySnapshot) => {
+            spinnerEl.style.display = 'none';
+            listEl.innerHTML = '';
+            if (querySnapshot.empty) {
+                emptyStateEl.style.display = 'block';
+                return;
+            }
+            emptyStateEl.style.display = 'none';
+            querySnapshot.forEach(doc => {
+                const debt = doc.data();
+                const id = doc.id;
+                const li = document.createElement('div');
+                li.className = 'debtor-item';
+                li.innerHTML = `
+                    <div class="debtor-info">
+                        <span class="debtor-name">${debt.debtorName}</span>
+                        <span class="debtor-details">
+                            Valor: ${formatCurrency(debt.debtAmount)} | Material: ${debt.materialQuantity} un.
+                        </span>
+                    </div>
+                    <div class="debtor-actions">
+                         <button onclick="window.showDeleteConfirmation('${id}', 'darkDebts')" class="btn-delete">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+        }, (error) => {
+            console.error("Erro ao carregar devedores:", error);
+            spinnerEl.style.display = 'none';
         }
     );
 };
@@ -365,7 +458,7 @@ const loadExpenses = (userId) => {
 
 auth.onAuthStateChanged(user => {
     if (user) {
-        showDashboard(user);
+        navigateTo(currentPage, user); // Inicia na página atual ou dashboard
     } else {
         showLoginPage();
     }
